@@ -22,7 +22,7 @@ PCP is a functional language made by students [Kovalenko Alexander](https://gith
     - [Example:](#example)
   - [If construction](#if-construction)
     - [Example:](#example-1)
-  - [Loop  ``for``](#loop--for)
+  - [Loop  for](#loop--for)
     - [Example:](#example-2)
   - [Declaration function](#declaration-function)
     - [Example:](#example-3)
@@ -120,7 +120,7 @@ if x == 0{
 }
 ```
 
-## Loop  ``for``
+## Loop  for
 ```
 for <iterator_variable_name> to <end_value>{
     <start_value> to <end_value>
