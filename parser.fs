@@ -1,26 +1,32 @@
-﻿open FParsec
+﻿module Parser
+
+open FParsec
+
+type Id = string
 
 type Expr =
-    | Number of int
-    | Variable of string
+    | Int of int
     | Bool of bool
+    | Var of string
     | Let of string * Expr
-    | Function of string * string list * Expr list
+    | MathOperation of string
+    | Function of Id * string list * Expr list
     | Apply of Expr * Expr list
     | If of Expr * Expr list * Expr list
     | For of Expr * Expr * Expr list
-    | Call of Expr
-    | Return of string * Expr list
+    | Return of Expr
+    | Call of Id * Expr list
     | Sequence of Expr list
-
-let numberParser : Parser<Expr, unit> =
-    pint32 |>> Number
+and
+    env = Map<Id, Expr>
+let IntParser : Parser<Expr, unit> =
+    pint32 |>> Int
 
 let identifierParser : Parser<string, unit> =
     many1Satisfy isLetter .>> spaces |>> System.String
 
 let rec exprParser input =
-    let term = letParser <|> functionOrCallParser <|> forParser <|> ifParser <|> returnParser <|> variableParser <|> numberParser
+    let term = letParser <|> functionOrCallParser <|> forParser <|> ifParser <|> callParser <|> returnParser <|> VarParser <|> IntParser
     chainl1 term opParser input
 
 and letParser : Parser<Expr, unit> =
@@ -35,7 +41,7 @@ and exprSequenceParser : Parser<Expr list, unit> =
 and programParser : Parser<Expr, unit> =
     exprSequenceParser |>> Sequence
 and argumentsParser: Parser<Expr list, unit> =
-   ((between (pchar '[' .>> spaces) (pchar ']' .>> spaces))(sepBy exprParser (pchar ',' .>> spaces)))
+   (between (pchar '[' .>> spaces) (pchar ']' .>> spaces))(sepBy exprParser (pchar ',' .>> spaces))
     
 and argsParser: Parser<string list, unit> =
    ((between (pchar '[' .>> spaces) (pchar ']' .>> spaces)) (sepBy identifierParser (pchar ',' .>> spaces)))
@@ -46,34 +52,34 @@ and bodyParser: Parser<Expr list, unit> =
 and ifParser: Parser<Expr, unit> =
     pipe4
         (pstring "if" .>> spaces >>. exprParser)
-        (bodyParser)
+        bodyParser
         (pstring "else")
-        (bodyParser)
+        bodyParser
         (fun expr ifBody _ elseBody -> If(expr, ifBody, elseBody))
 
-and returnParser: Parser<Expr, unit> =
+and  callParser: Parser<Expr, unit> =
     pipe2
-        (pstring "ret" .>> spaces >>. identifierParser)
-        (argumentsParser)
-        (fun funcName args -> Return(funcName, args))
+        (pstring "call" .>> spaces >>. identifierParser)
+        argumentsParser
+        (fun funcName args -> Call(funcName, args))
         
 and functionParser : Parser<Expr, unit> =
     pipe3
         (pstring "func" .>> spaces >>. many1Satisfy isLetter .>> spaces |>> System.String)
-        (argsParser)
-        (bodyParser)
+        argsParser
+        bodyParser
         (fun funcName args body -> Function(funcName, args, body))
 
-and callParser : Parser<Expr, unit> =
+and returnParser : Parser<Expr, unit> =
     pipe2
-        (pstring "call" .>> spaces)
-        (exprParser)
-        (fun _ ide -> Call(ide))
+        (pstring "return" .>> spaces)
+        exprParser
+        (fun _ ide -> Return(ide))
 
 and functionOrCallParser : Parser<Expr, unit> =
     choice [
         functionParser
-        callParser
+        returnParser
     ]
 
 and forParser : Parser<Expr, unit> =
@@ -82,54 +88,53 @@ and forParser : Parser<Expr, unit> =
         (identifierParser .>> spaces)
         (pstring "=" .>> spaces >>. exprParser .>> spaces)
         (pstring "to" .>> spaces >>. exprParser .>> spaces)
-        (bodyParser)
+        bodyParser
         (fun _ _ start end_ body -> For(start, end_, body))
 
-and variableParser : Parser<Expr, unit> =
-    identifierParser |>> Variable
+and VarParser : Parser<Expr, unit> =
+    identifierParser |>> Var
 
-and opParser : Parser<(Expr -> Expr -> Expr), unit> =
+and opParser : Parser<Expr -> Expr -> Expr, unit> =
     choice [
-        pchar '+' >>% (fun x y -> Apply(Variable("+"), [x; y]))
-        pchar '-' >>% (fun x y -> Apply(Variable("-"), [x; y]))
-        pchar '*' >>% (fun x y -> Apply(Variable("*"), [x; y]))
-        pchar '/' >>% (fun x y -> Apply(Variable("/"), [x; y]))
-        pchar '<' >>% (fun x y -> Apply(Variable("<"), [x; y]))
-        pchar '>' >>% (fun x y -> Apply(Variable(">"), [x; y]))
-        pstring "<=" >>% (fun x y -> Apply(Variable("<="), [x; y]))
-        pstring ">=" >>% (fun x y -> Apply(Variable(">="), [x; y]))
-        pstring "!=" >>% (fun x y -> Apply(Variable("!="), [x; y]))
-        pstring "||" >>% (fun x y -> Apply(Variable("||"), [x; y]))
-        pstring "&&" >>% (fun x y -> Apply(Variable("&&"), [x; y]))
-        pstring "==" >>% (fun x y -> Apply(Variable("=="), [x; y]))
+        pchar '+' >>% (fun x y -> Apply(MathOperation("+"), [x; y]))
+        pchar '-' >>% (fun x y -> Apply(MathOperation("-"), [x; y]))
+        pchar '*' >>% (fun x y -> Apply(MathOperation("*"), [x; y]))
+        pchar '/' >>% (fun x y -> Apply(MathOperation("/"), [x; y]))
+        pchar '<' >>% (fun x y -> Apply(MathOperation("<"), [x; y]))
+        pchar '>' >>% (fun x y -> Apply(MathOperation(">"), [x; y]))
+        pstring "<=" >>% (fun x y -> Apply(MathOperation("<="), [x; y]))
+        pstring ">=" >>% (fun x y -> Apply(MathOperation(">="), [x; y]))
+        pstring "!=" >>% (fun x y -> Apply(MathOperation("!="), [x; y]))
+        pstring "||" >>% (fun x y -> Apply(MathOperation("||"), [x; y]))
+        pstring "&&" >>% (fun x y -> Apply(MathOperation("&&"), [x; y]))
+        pstring "==" >>% (fun x y -> Apply(MathOperation("=="), [x; y]))
         ]
 
 let testExpression input =
-    printfn "%A" input
     match run programParser input with
     | Success(result, _, _) ->
-        printfn "Parsed expression: %A" result
+        printfn $"Parsed expression: %A{result}"
     | Failure(errorMsg, _, _) ->
-        printfn "Failed to parse expression: %s" errorMsg
+        printfn $"Failed to parse expression: %s{errorMsg}"
 
 // Тестовые примеры
-testExpression "let x = 103;
-let e = 105"
-testExpression "func double[x, y]{
-let k = x*2;
-call ret double[x, y-1]*n}"
-testExpression "let e = ret double[1, 2]"
-testExpression "func factorial[n] {
-    if n==0{
-        call 1}
-    else{call ret factorial[n-1]*n
-    }}"
-testExpression "if x>0{
-        let e=0;
-        let t=x+y}
-        else{
-            let re = ty}"
-testExpression "for i = 1 to 10{
-let k = 10+5;
-let t = i+2}"
-testExpression "let e = 10+12+2"
+// testExpression "let x = 103;
+// let e = 105"
+// testExpression "func double[x, y]{
+// let k = x*2;
+// call ret double[x, y-1]*n}"
+// testExpression "let e = ret double[1, 2]"
+// testExpression "func factorial[n] {
+//     if n==0{
+//         call 1}
+//     else{call ret factorial[n-1]*n
+//     }}"
+// testExpression "if x>0{
+//         let e=0;
+//         let t=x+y}
+//         else{
+//             let re = ty}"
+// testExpression "for i = 1 to 10{
+// let k = 10+5;
+// let t = i+2}"
+// testExpression "let e = 10+12+2"
