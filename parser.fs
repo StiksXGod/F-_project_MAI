@@ -17,6 +17,8 @@ type Expr =
     | Return of Expr
     | Call of Id * Expr list
     | Sequence of Expr list
+    | Print of string
+    | Read_int
 and
     env = Map<Id, Expr>
 let IntParser : Parser<Expr, unit> =
@@ -26,7 +28,7 @@ let identifierParser : Parser<string, unit> =
     many1Satisfy isLetter .>> spaces |>> System.String
 
 let rec exprParser input =
-    let term = letParser <|> functionOrCallParser <|> forParser <|> ifParser <|> callParser <|> returnParser <|> VarParser <|> IntParser
+    let term = letParser <|> functionOrCallParser <|> forParser <|> ifParser <|> callParser <|> returnParser <|> printParser <|> readIntParser <|> VarParser <|> IntParser
     chainl1 term opParser input
 
 and letParser : Parser<Expr, unit> =
@@ -34,6 +36,15 @@ and letParser : Parser<Expr, unit> =
         (pstring "let" .>> spaces >>. identifierParser)
         (pchar '=' .>> spaces >>. exprParser)
         (fun varName expr -> Let(varName, expr))
+
+and printParser: Parser<Expr, unit> =
+    pipe2
+        (pstring "print" >>. spaces)
+        (identifierParser)
+        (fun _ varName -> Print(varName))
+
+and readIntParser: Parser<Expr, unit> =
+    pstring "read_int()" >>. spaces >>% Read_int
 
 and exprSequenceParser : Parser<Expr list, unit> =
     sepEndBy1 exprParser (pchar ';' .>> spaces)
@@ -120,8 +131,9 @@ let testExpression input =
            failwith("Пизда всему")        
 
 // Тестовые примеры
-// testExpression "let x = 103;
-// let e = 105"
+//testExpression "let x = 103;
+//let e = 105;
+// print e"
 // testExpression "func double[x, y]{
 // let k = x*2;
 // call ret double[x, y-1]*n}"
