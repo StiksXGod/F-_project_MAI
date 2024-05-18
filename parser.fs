@@ -109,13 +109,15 @@ and opParser : Parser<Expr -> Expr -> Expr, unit> =
         pstring "&&" >>% (fun x y -> Apply(MathOperation("&&"), [x; y]))
         pstring "==" >>% (fun x y -> Apply(MathOperation("=="), [x; y]))
         ]
-
+    
 let testExpression input =
     match run programParser input with
     | Success(result, _, _) ->
-        printfn $"Parsed expression: %A{result}"
+           match result with
+           | Sequence(list) -> list
+           | _ -> failwith("Пизда всему")
     | Failure(errorMsg, _, _) ->
-        printfn $"Failed to parse expression: %s{errorMsg}"
+           failwith("Пизда всему")        
 
 // Тестовые примеры
 // testExpression "let x = 103;
