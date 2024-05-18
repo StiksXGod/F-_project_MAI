@@ -1,5 +1,4 @@
-﻿open System.Linq.Expressions
-open FParsec
+﻿open FParsec
 
 type Expr =
     | Number of int
@@ -12,6 +11,7 @@ type Expr =
     | For of Expr * Expr * Expr list
     | Call of Expr
     | Return of string * Expr list
+    | Sequence of Expr list
 
 let numberParser : Parser<Expr, unit> =
     pint32 |>> Number
@@ -29,6 +29,11 @@ and letParser : Parser<Expr, unit> =
         (pchar '=' .>> spaces >>. exprParser)
         (fun varName expr -> Let(varName, expr))
 
+and exprSequenceParser : Parser<Expr list, unit> =
+    sepEndBy1 exprParser (pchar ';' .>> spaces)
+
+and programParser : Parser<Expr, unit> =
+    exprSequenceParser |>> Sequence
 and argumentsParser: Parser<Expr list, unit> =
    ((between (pchar '[' .>> spaces) (pchar ']' .>> spaces))(sepBy exprParser (pchar ',' .>> spaces)))
     
@@ -101,14 +106,15 @@ and opParser : Parser<(Expr -> Expr -> Expr), unit> =
 
 let testExpression input =
     printfn "%A" input
-    match run exprParser input with
+    match run programParser input with
     | Success(result, _, _) ->
         printfn "Parsed expression: %A" result
     | Failure(errorMsg, _, _) ->
         printfn "Failed to parse expression: %s" errorMsg
 
 // Тестовые примеры
-testExpression "let x = 103"
+testExpression "let x = 103;
+let e = 105"
 testExpression "func double[x, y]{
 let k = x*2;
 call ret double[x, y-1]*n}"
