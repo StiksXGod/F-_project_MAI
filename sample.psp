@@ -1,2 +1,12 @@
-let a = 100;
-let b = 100+a;
+let flag = 2345678
+
+func fact[n] {            
+    if n==0{
+        print flag;
+        return 1}
+    else{
+        return n*call fact[n-1]}     
+}
+
+let f = call fact[1]
+print f
