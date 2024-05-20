@@ -65,7 +65,10 @@ let funof = function
         )
     | _ -> failwith "Unknown operation"
 
-let printTypeofExpr (expr: Expr) =
+let printTypeofExpr (expr: Expr, env: Map<Id, Expr>) =
+    match Map.tryFind "n" env with
+    | Some(value) -> printf $"%A{value} "
+    | None -> printf "none n "
     match expr with
     | Int(x) -> printfn $"Type: int %A{x}"
     | Bool _ -> printfn "Type: bool"
@@ -84,6 +87,7 @@ let printTypeofExpr (expr: Expr) =
     | Read_int -> printfn "Type: Read_int" 
 
 let rec eval (expr: Expr, env: Map<Id, Expr>): Expr * Map<Id, Expr> =
+    // printTypeofExpr(expr, env)
     match expr with
     | Int(x) -> (Int(x), env)
     
@@ -151,7 +155,8 @@ let rec eval (expr: Expr, env: Map<Id, Expr>): Expr * Map<Id, Expr> =
                 if argsNames.Length <> args.Length then
                     failwith("incorrect number of arguments")
                 else
-                    let newEnv = List.zip argsNames args |> List.fold (fun map (key, value) -> Map.add key value map) env                                          
+                    let evaluatedArgs = args |> List.map (fun expr -> eval(expr, env)) |> List.map (fun (expr, _) -> expr)
+                    let newEnv = List.zip argsNames evaluatedArgs |> List.fold (fun map (key, value) -> Map.add key value map) env                                          
                     let returnedValue, lastEnv = evalFunction(body, newEnv)
                     (returnedValue, lastEnv)
             | _ -> failwith("unknown type of function")
