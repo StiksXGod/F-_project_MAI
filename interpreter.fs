@@ -1,5 +1,6 @@
 module Interpreter
 
+open System
 open Parser
 
 let funof = function
@@ -65,29 +66,7 @@ let funof = function
         )
     | _ -> failwith "Unknown operation"
 
-let printTypeofExpr (expr: Expr, env: Map<Id, Expr>) =
-    match Map.tryFind "n" env with
-    | Some(value) -> printf $"%A{value} "
-    | None -> printf "none n "
-    match expr with
-    | Int(x) -> printfn $"Type: int %A{x}"
-    | Bool _ -> printfn "Type: bool"
-    | Nothing -> printfn "Type: Nothing"
-    | Var id -> printfn $"Type: Var %A{id}"
-    | Let (id, _) -> printfn $"Type: Let %A{id}"
-    | MathOperation id -> printfn $"Type: MathOperation %A{id}"
-    | Function _ -> printfn "Type: Function"
-    | Apply (id, args) -> printfn $"Type: Apply %A{id} %A{args}"
-    | If _ -> printfn "Type: If"
-    | For _ -> printfn "Type: For"
-    | Return _ -> printfn "Type: Return"
-    | Call _ -> printfn "Type: Call"
-    | Sequence _ -> printfn "Type: Sequence"
-    | Print _ -> printfn "Type: Print"
-    | Read_int -> printfn "Type: Read_int" 
-
 let rec eval (expr: Expr, env: Map<Id, Expr>): Expr * Map<Id, Expr> =
-    // printTypeofExpr(expr, env)
     match expr with
     | Int(x) -> (Int(x), env)
     
@@ -99,11 +78,10 @@ let rec eval (expr: Expr, env: Map<Id, Expr>): Expr * Map<Id, Expr> =
         | None -> failwith $"Variable '%s{id}' not found"
         
     | Let(id, letExpr) ->
-        let value, _ = eval(letExpr, env)
-        match value with
+        match letExpr with
         | Nothing -> failwith("this function does not return anything")
         | _ -> 
-            let newEnv = Map.add id value env
+            let newEnv = Map.add id letExpr env
             (Nothing, newEnv)
             
     | Function(id, argsNames, body) ->
@@ -168,7 +146,8 @@ let rec eval (expr: Expr, env: Map<Id, Expr>): Expr * Map<Id, Expr> =
     
     | Print(varName) ->
         match Map.tryFind varName env with
-        | Some(value) ->
+        | Some(ex) ->
+            let value, _ = eval(ex, env)
             match value with
             | Int(v) ->
                 printfn $"%d{v}"
@@ -180,9 +159,17 @@ let rec eval (expr: Expr, env: Map<Id, Expr>): Expr * Map<Id, Expr> =
             failwith("unknown variable name")
         
         (Nothing, env)
+    | Read_int ->
+        let num = readIntFromConsole
+        (Int(num), env)
     | Nothing -> (Nothing, env)
     | _ -> failwith("unknown key word")
-    
+
+and readIntFromConsole =
+    match Int32.TryParse(Console.ReadLine()) with
+    | true, number -> number
+    | _ -> 
+        failwith("Неверный формат числа")
 and evalFunction(body: Expr list, env: Map<Id, Expr>): Expr * Map<Id, Expr> =
     match body with
     | [] -> (Nothing, env)

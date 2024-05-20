@@ -45,7 +45,7 @@ and printParser: Parser<Expr, unit> =
         (fun _ varName -> Print(varName))
 
 and readIntParser: Parser<Expr, unit> =
-    pstring "read_int()" >>. spaces >>% Read_int
+    pstring "read_int[]" >>. spaces >>% Read_int
 
 and exprSequenceParser : Parser<Expr list, unit> =
     sepEndBy1 exprParser (spaces)

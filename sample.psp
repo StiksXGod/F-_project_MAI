@@ -5,5 +5,8 @@ func fact[n] {
         return n*call fact[n-1]}     
 }
 
-let f = call fact[5]
+let n = read_int[]
+print n
+
+let f = call fact[n]
 print f
