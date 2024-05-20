@@ -7,6 +7,7 @@ type Id = string
 type Expr =
     | Int of int
     | Bool of bool
+    | Nothing
     | Var of string
     | Let of string * Expr
     | MathOperation of string
@@ -127,7 +128,7 @@ let testExpression input =
            | Sequence(list) -> list
            | _ -> failwith("Пизда всему")
     | Failure(errorMsg, _, _) ->
-           failwith("Пизда всему")        
+           failwith(errorMsg)        
 
 // Тестовые примеры
 //testExpression "let x = 103;
