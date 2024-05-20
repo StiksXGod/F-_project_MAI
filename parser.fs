@@ -29,7 +29,7 @@ let identifierParser : Parser<string, unit> =
     many1Satisfy isLetter .>> spaces |>> System.String
 
 let rec exprParser input =
-    let term = letParser <|> functionOrCallParser <|> forParser <|> ifParser <|> callParser <|> returnParser <|> printParser <|> readIntParser <|> VarParser <|> IntParser
+    let term = letParser <|> functionOrReturnParser <|> forParser <|> ifParser <|> callParser <|> returnParser <|> printParser <|> readIntParser <|> VarParser <|> IntParser
     chainl1 term opParser input
 
 and letParser : Parser<Expr, unit> =
@@ -88,7 +88,7 @@ and returnParser : Parser<Expr, unit> =
         exprParser
         (fun _ ide -> Return(ide))
 
-and functionOrCallParser : Parser<Expr, unit> =
+and functionOrReturnParser : Parser<Expr, unit> =
     choice [
         functionParser
         returnParser
