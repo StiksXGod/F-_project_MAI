@@ -47,7 +47,7 @@ and readIntParser: Parser<Expr, unit> =
     pstring "read_int()" >>. spaces >>% Read_int
 
 and exprSequenceParser : Parser<Expr list, unit> =
-    sepEndBy1 exprParser (pchar ';' .>> spaces)
+    sepEndBy1 exprParser (spaces)
 
 and programParser : Parser<Expr, unit> =
     exprSequenceParser |>> Sequence
@@ -94,14 +94,13 @@ and functionOrCallParser : Parser<Expr, unit> =
     ]
 
 and forParser : Parser<Expr, unit> =
-    pipe5
+    pipe4
         (pstring "for" .>> spaces)
-        (identifierParser .>> spaces)
-        (pstring "=" .>> spaces >>. exprParser .>> spaces)
+        (exprParser .>> spaces)
         (pstring "to" .>> spaces >>. exprParser .>> spaces)
-        bodyParser
-        (fun _ _ start end_ body -> For(start, end_, body))
-
+        (bodyParser)
+        (fun _ start end_ body -> For(start, end_, body))
+        
 and VarParser : Parser<Expr, unit> =
     identifierParser |>> Var
 
