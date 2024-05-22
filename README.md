@@ -1,16 +1,29 @@
 # PCP 1.0 documentation
 Welcome, this is official documentation for PCP 1.0. 
 
+
+
+
 # PCP
 PCP is a functional language made by students [Kovalenko Alexander](https://github.com/Serohon), [Bachurin Pavel](https://github.com/Sleeps17) and [Mudrov Pavel](https://github.com/StiksXGod) of the Moscow Aviation Institute group M8O-203B-22.
 * Turing complete
 * Original syntax
 * Made using the [FParsec](http://www.quanttec.com/fparsec/) library
+* Lazy evaluation implemented
+
+# About PCP team 
+
+## Essay - [GitHub Pages](https://stiksxgod.github.io/fucnProg_githubPages/)<br>
+Kovalenko Alexander - Moscow Aviation Institute M80-203B-22 group, parser part<br>
+Bachurin Pavel - Moscow Aviation Institute M80-203B-22 group, interpreter part<br>
+Mudrov Pavel - Moscow Aviation Institute M80-203B-22 group, GitHub Pages and documentation part<br>
 
 
 # Table of contents
 - [PCP 1.0 documentation](#pcp-10-documentation)
 - [PCP](#pcp)
+- [About PCP team](#about-pcp-team)
+  - [Essay - GitHub Pages](#essay---github-pages)
 - [Table of contents](#table-of-contents)
 - [Brief Syntax PCP](#brief-syntax-pcp)
 - [Syntax PCP](#syntax-pcp)
@@ -28,6 +41,7 @@ PCP is a functional language made by students [Kovalenko Alexander](https://gith
     - [Example:](#example-3)
   - [Call function](#call-function)
   - [Convert to  AST](#convert-to--ast)
+  - [Lazy evaluation](#lazy-evaluation)
 
 
 
@@ -144,20 +158,24 @@ func <function_name> <arg1_name> <arg2_name> ... {
 ```
 ### Example:
 ```
-func fact n {
-    if n == 1{
-        1
-    }else{
-        n * (call fact n-1)
-    }
-}  
+func fact[n] {            
+    if n==0{
+        return 1}
+    else{
+        return n*call fact[n-1]}     
+}
+
+let n = read_int[]
+print n
+
+let f = call fact[n]
+print f 
 ```
 
 ## Call function
 ```
-let var = call fact 10
+let var = call fact[10]
 ```
-
 ## Convert to  AST
 Let's look at a simple psp program and its appearance in an abstract syntax tree.
 ```
@@ -166,5 +184,16 @@ func sum a b = a + b
 let a = 100
 let b = 20
 
-call print call sum a b
+print call sum a b
 ```
+## Lazy evaluation
+
+```
+| Let(id, letExpr) ->
+        match letExpr with
+        | Nothing -> failwith("this function does not return anything")
+        | _ -> 
+            let newEnv = Map.add id letExpr env
+            (Nothing, newEnv)
+```
+This technique is used to optimize performance and improve program efficiency. It avoids unnecessary calculations and therefore saves resources.Lazy evaluation allows you to work with infinite data structures, such as infinite lists, without fear of memory overflow, since only the necessary part of the data structure will be evaluated.
